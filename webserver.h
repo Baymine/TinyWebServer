@@ -25,6 +25,7 @@ public:
     WebServer();
     ~WebServer();
 
+    // 成员变量赋值初始化
     void init(int port , string user, string passWord, string databaseName,
               int log_write , int opt_linger, int trigmode, int sql_num,
               int thread_num, int close_log, int actor_model);
@@ -48,7 +49,7 @@ public:
     int m_port;
     char *m_root;
     int m_log_write;
-    int m_close_log;
+    int m_close_log;  // 关闭日志功能
     int m_actormodel;
 
     int m_pipefd[2];
