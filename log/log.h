@@ -10,22 +10,23 @@
 
 using namespace std;
 
-class Log
-{
+class Log {
 public:
     //C++11以后,使用局部变量懒汉不用加锁
-    static Log *get_instance()
-    {
+    static Log *get_instance() {
         static Log instance;
         return &instance;
     }
 
-    static void *flush_log_thread(void *args)
-    {
+    // 异步写日志公有方法，调用私有方法async_write_log
+    static void *flush_log_thread(void *args) {
         Log::get_instance()->async_write_log();
     }
+
+    // 日志创建、写入方式的判断
     //可选择的参数有日志文件、日志缓冲区大小、最大行数以及最长日志条队列
-    bool init(const char *file_name, int close_log, int log_buf_size = 8192, int split_lines = 5000000, int max_queue_size = 0);
+    bool init(const char *file_name, int close_log, int log_buf_size = 8192, int split_lines = 5000000,
+              int max_queue_size = 0);
 
     void write_log(int level, const char *format, ...);
 
@@ -33,15 +34,15 @@ public:
 
 private:
     Log();
+
     virtual ~Log();
-    void *async_write_log()
-    {
+
+    void *async_write_log() {
         string single_log;
         //从阻塞队列中取出一个日志string，写入文件
-        while (m_log_queue->pop(single_log))
-        {
+        while (m_log_queue->pop(single_log)) {
             m_mutex.lock();
-            fputs(single_log.c_str(), m_fp);
+            fputs(single_log.c_str(), m_fp); // m_fp：指向FILE对象的指针，该FILE对象标识了要被写入字符串的流。
             m_mutex.unlock();
         }
     }
@@ -61,6 +62,9 @@ private:
     int m_close_log; //关闭日志
 };
 
+// 末尾的四个可变参数宏提供了其他程序的调用方法。
+// __VA_ARGS__是一个可变参数的宏，定义时宏定义中参数列表的最后一个参数为省略号
+// __VA_ARGS__宏前面加上##的作用在于，当可变参数的个数为0时，这里printf参数列表中的的##会把前面多余的","去掉，否则会编译出错，建议使用后面这种，使得程序更加健壮。
 #define LOG_DEBUG(format, ...) if(0 == m_close_log) {Log::get_instance()->write_log(0, format, ##__VA_ARGS__); Log::get_instance()->flush();}
 #define LOG_INFO(format, ...) if(0 == m_close_log) {Log::get_instance()->write_log(1, format, ##__VA_ARGS__); Log::get_instance()->flush();}
 #define LOG_WARN(format, ...) if(0 == m_close_log) {Log::get_instance()->write_log(2, format, ##__VA_ARGS__); Log::get_instance()->flush();}
